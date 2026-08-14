@@ -1,6 +1,6 @@
-# MYRAA — Your AI Companion
+# HIYUKI — Your AI Companion
 
-A complete, dependency-free AI companion web app built from the **MYRAA MASTER PROMPT**:
+A complete, dependency-free AI companion web app built from the **HIYUKI MASTER PROMPT**:
 
 - 💬 **Human conversation mode** — continuous listening, no wake words, natural reactions
   ("Hmm...", "I see..."), polite interruption, gentle check-ins after silence
@@ -22,7 +22,7 @@ The app is 100% static — no build step, no server, no Node required.
 1. Push the `myraa` folder to a GitHub repo:
    ```bash
    cd myraa
-   git init && git add . && git commit -m "Myraa"
+   git init && git add . && git commit -m "Hiyuki"
    git remote add origin https://github.com/<you>/myraa.git
    git push -u origin main
    ```
@@ -62,14 +62,14 @@ mode without a key.
 
 ## Models & API
 
-Myraa talks to Gemini through the current **Interactions API**
+Hiyuki talks to Gemini through the current **Interactions API**
 (`generativelanguage.googleapis.com/v1beta2/interactions`), which replaced the old
 `generateContent` endpoint for new accounts. Defaults:
 
 - Chat + vision model: **`gemini-3.7-flash`** (older models like `gemini-2.5-flash` are
   no longer served to new users — Settings offers the current Gemini 3.x lineup)
 - Multi-turn conversations run on **server-side state** via `previous_interaction_id`,
-  so Myraa keeps full conversational memory across page reloads
+  so Hiyuki keeps full conversational memory across page reloads
 - Responses stream token-by-token (SSE) and the character switches to THINKING/TALKING
   live as text arrives and as her voice speaks
 
@@ -83,13 +83,13 @@ Drop these files into `myraa/assets/videos/` (exact names), or upload them in Se
 | THINKING | `ANIMA GIRL THINKING.mp4`    |
 | TALKING  | `ANIMA GIRL TAKING.mp4`      |
 
-Until the videos exist, Myraa shows a cute animated fallback avatar so the app is fully
+Until the videos exist, Hiyuki shows a cute animated fallback avatar so the app is fully
 usable right away. Videos are muted on purpose (the TTS provides the voice) and loop.
 
 ## Features in detail
 
 ### Human conversation mode
-Hit the 🎤 button (or enable "Continuous listening" in Settings). Myraa listens
+Hit the 🎤 button (or enable "Continuous listening" in Settings). Hiyuki listens
 continuously — no wake words. She only speaks when there's a reason, reacts with short
 natural acknowledgments, stops talking when you interrupt, and occasionally checks in
 after long silences. Silence is normal; she knows it.
@@ -101,7 +101,7 @@ pruned, and the most relevant memories are injected into every reply — so mont
 she still knows you. Open **🧠 Memory** to see, delete, or re-mine your memories.
 
 ### Screen sharing + vision
-Click **Share Screen**, pick a screen/window/tab, and Myraa can see it. Enable
+Click **Share Screen**, pick a screen/window/tab, and Hiyuki can see it. Enable
 **Screen Vision mode** and she continuously analyzes frames and keeps context, so you can
 ask "What website am I on?", "Explain this code", "How is this thumbnail?", or
 "Analyze my YouTube analytics". Frames are compressed (JPEG, max 1280px) before sending.
@@ -113,7 +113,7 @@ TTS voice in your OS (e.g. Windows "Microsoft Zira/Aria") and it will be picked 
 
 ### Browser
 A real tabbed browser panel (tabs, back/forward/reload/home, history, new tab). It opens on
-Myraa's own start page; sites that allow embedding load right inside. Most big sites
+Hiyuki's own start page; sites that allow embedding load right inside. Most big sites
 (Google, YouTube, Wikipedia, Facebook, Gmail, DuckDuckGo…) deliberately refuse to be framed
 — that's their choice, not a fake UI — so for them the panel shows an amber strip with an
 "Open externally ↗" button. YouTube commands play through a real embedded player instead:

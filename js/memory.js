@@ -30,7 +30,7 @@ MYRAA.memory = (function () {
 
   /* ---------- extract: ask Gemini what matters ---------- */
   const EXTRACT_SYSTEM =
-    'You are the memory system of an AI companion named Myraa. ' +
+    'You are the memory system of an AI companion named Hiyuki. ' +
     'Read the conversation and extract only durable, useful facts about the USER: ' +
     'name, age, hobbies, favorite games/movies/creators, personality, goals, projects, ' +
     'fears, habits, relationships, preferences, life events. ' +

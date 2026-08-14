@@ -42,7 +42,7 @@ MYRAA.browser = (function () {
       a:hover{background:rgba(167,139,250,.25)}
       .hint{color:rgba(237,233,255,.4);font-size:11px;max-width:440px;text-align:center;line-height:1.6}
     </style></head><body>
-      <div><h1>MYRAA</h1><div class="tag">browser</div></div>
+      <div><h1>HIYUKI</h1><div class="tag">browser</div></div>
       <div class="box"><input id="q" placeholder="Search or type a web address…" autofocus></div>
       <div class="links">
         <a href="https://example.com">Example</a>

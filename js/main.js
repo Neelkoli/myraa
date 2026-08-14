@@ -204,19 +204,27 @@
     };
     resize();
     window.addEventListener('resize', resize);
-    const N = 60;
+    // gentle falling snow (subtle icy-blue flakes against the white theme)
+    const N = 90;
     for (let i = 0; i < N; i++) {
-      parts.push({ x: Math.random(), y: Math.random(), r: 0.5 + Math.random() * 1.8, s: 0.0004 + Math.random() * 0.0012, o: 0.1 + Math.random() * 0.5 });
+      parts.push({
+        x: Math.random(),
+        y: Math.random(),
+        r: 0.8 + Math.random() * 2.4,
+        s: 0.0005 + Math.random() * 0.0015,
+        o: 0.35 + Math.random() * 0.45,
+        drift: (Math.random() - 0.5) * 0.0005,
+      });
     }
     (function loop() {
       ctx.clearRect(0, 0, w, h);
       parts.forEach((p) => {
-        p.y -= p.s;
-        if (p.y < -0.02) p.y = 1.02;
-        p.x += Math.sin((Date.now() / 6000) + p.r * 40) * 0.0004;
+        p.y += p.s;
+        if (p.y > 1.02) { p.y = -0.02; p.x = Math.random(); }
+        p.x += p.drift + Math.sin(Date.now() / 4000 + p.r * 30) * 0.0003;
         ctx.beginPath();
         ctx.arc(p.x * w, p.y * h, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(160, 140, 255, ${p.o})`;
+        ctx.fillStyle = `rgba(185, 208, 250, ${p.o})`;
         ctx.fill();
       });
       requestAnimationFrame(loop);
@@ -372,8 +380,8 @@
     const name = MYRAA.chat.myName && MYRAA.chat.myName();
     setTimeout(() => {
       const msg = MYRAA.gemini.isConfigured()
-        ? (name ? `Hey ${name}, I'm here. What's on your mind?` : 'Hi! I\'m Myraa. What\'s on your mind?')
-        : 'Hi, I\'m Myraa! Add your Gemini API key in Settings (⚙️) so I can really talk — everything else works in demo mode.';
+        ? (name ? `Hey ${name}, I'm here. What's on your mind?` : 'Hi! I\'m Hiyuki. What\'s on your mind?')
+        : 'Hi, I\'m Hiyuki! Add your Gemini API key in Settings (⚙️) so I can really talk — everything else works in demo mode.';
       MYRAA.chat.appendMessage && MYRAA.chat.appendMessage('myraa', msg);
     }, 400);
   }

@@ -136,7 +136,7 @@ MYRAA.screen = (function () {
   async function analyzeFrame(b64) {
     try {
       const summary = await MYRAA.gemini.vision({
-        text: 'You are Myraa looking at the user\'s screen right now. ' +
+        text: 'You are Hiyuki looking at the user\'s screen right now. ' +
               'Give a SHORT (under 40 words) summary of what is visible: the website/app, ' +
               'main content, and anything notable. No greetings.',
         imageBase64: b64,
@@ -171,7 +171,7 @@ MYRAA.screen = (function () {
       ? 'Recent screen context:\n' + screenContext.slice(-3).map((c) => '• ' + c.summary).join('\n')
       : 'No prior context yet.';
     return MYRAA.gemini.vision({
-      text: 'You are Myraa looking at the user\'s screen. ' +
+      text: 'You are Hiyuki looking at the user\'s screen. ' +
             'Using the visible screen and the recent context, answer the user naturally and helpfully.\n\n' +
             contextText + '\n\nUser question: ' + question,
       imageBase64: latest ? latest.b64 : null,
