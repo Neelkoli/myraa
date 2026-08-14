@@ -120,8 +120,22 @@ Hiyuki's own start page; sites that allow embedding load right inside. Most big 
 — that's their choice, not a fake UI — so for them the panel shows an amber strip with an
 "Open externally ↗" button. YouTube commands play through a real embedded player instead:
 - "Open YouTube" / "Play Naruto opening" / "Play relaxing music" → embedded YouTube player
-- "Search latest AI news" → DuckDuckGo search (open externally if blocked)
+- "Search latest AI news" → in-app search with result tabs (Web / News / Videos / Maps)
 - "Open ChatGPT" / "Open Gmail" / "Open TECH GPT channel" → mapped to real sites
+
+**Searching** never hits a dead end. Since search engines refuse to be framed, searches open
+a native results view inside the browser panel with filter tabs, each backed by a no-key
+CORS-open API:
+- **Web** — full DuckDuckGo results proxied through the Vercel serverless function
+  (`/api/search`); locally it falls back to DuckDuckGo instant answers + Wikipedia
+- **News** — Hacker News (Algolia API)
+- **Videos** — Wikimedia Commons video files, plus a "▶ Play on YouTube" button that opens
+  the live YouTube search player in the tab
+- **Maps** — OpenStreetMap (Nominatim places + an embedded map)
+
+When the query looks like a song or video title, each result card and the header gain a
+"▶ Play on YouTube" action. Every search is remembered, and the 🕘 history panel shows
+"Recent searches" chips you can tap to re-run.
 
 ## Voice command examples
 ```
@@ -148,7 +162,8 @@ js/memory.js          long-term memory engine
 js/voice.js           TTS (cute voice) + continuous STT
 js/character.js       video state machine + fallback avatar
 js/screen.js          screen sharing + Screen Vision
-js/browser.js         tabbed browser + YouTube mode
+js/browser.js         tabbed browser + in-app search tabs
+api/search.js         Vercel serverless function: full web search proxy (no key)
 js/chat.js            persona, orchestration, voice commands
 js/main.js            boot, UI wiring, settings, particles
 assets/videos/        drop your 3 character videos here

@@ -207,11 +207,15 @@
     <div id="browserSearch" class="browser-search" style="display:none">
       <div class="search-head">
         <div class="search-query-wrap"><span class="search-mag">🔎</span><b id="searchQuery"></b></div>
-        <button class="icon-btn" id="searchClose" title="Close search">✕</button>
+        <div class="search-head-right">
+          <button class="mini-btn" id="searchPlay" style="display:none" title="Play this query on YouTube">▶ Play on YouTube</button>
+          <button class="icon-btn" id="searchClose" title="Close search">✕</button>
+        </div>
       </div>
+      <div id="searchTabs" class="search-tabs"></div>
       <div id="searchStatus" class="search-status"></div>
       <div id="searchInstant" class="search-instant"></div>
-      <div class="search-results-head">Results</div>
+      <div id="searchResultsHead" class="search-results-head" style="display:none">Results</div>
       <div id="searchResults" class="search-results"></div>
       <div class="search-foot">
         <span>Searching inside the app — or open it in your real browser:</span>
