@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYRAA — Your AI Companion</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ambient particles -->
+<canvas id="particles"></canvas>
+
+<!-- ============ CHARACTER STAGE (visual center) ============ -->
+<main class="stage-wrap">
+  <div class="brand">
+    <h1 class="logo">MYRAA</h1>
+    <div class="tagline">your companion, always listening</div>
+  </div>
+
+  <div id="characterStage" class="stage stage-idle fx">
+    <!-- character videos are injected here (IDLE / THINKING / TALKING) -->
+    <div id="fallbackFace" class="fallback-face state-idle">
+      <div class="fb-aura"></div>
+      <div class="fb-head">
+        <div class="fb-eye fb-eye-l"></div>
+        <div class="fb-eye fb-eye-r"></div>
+        <div class="fb-blush fb-blush-l"></div>
+        <div class="fb-blush fb-blush-r"></div>
+        <div class="fb-mouth"></div>
+      </div>
+      <div class="fb-name">MYRAA</div>
+    </div>
+  </div>
+
+  <div id="charStatus" class="chip chip-idle">IDLE</div>
+  <div id="micHint" class="mic-hint"></div>
+  <div id="screenVisionNote" class="screen-vision-note"></div>
+</main>
+
+<!-- ============ CHAT PANEL ============ -->
+<aside id="chatPanel" class="chat-panel">
+  <div class="chat-header">
+    <div class="chat-title">
+      <span class="chat-dot"></span>
+      <span>MYRAA</span>
+    </div>
+    <div class="chat-sub" id="mainStatus">idle</div>
+    <button class="icon-btn" id="btnClearChat" title="Clear conversation">🗑</button>
+  </div>
+  <div id="messages" class="messages"></div>
+  <div class="chat-input-row">
+    <button class="round-btn mic-btn" id="btnMic" title="Voice conversation">🎤</button>
+    <textarea id="chatInput" rows="1" placeholder="Talk to Myraa..."></textarea>
+    <button class="round-btn send-btn" id="btnSend" title="Send">➤</button>
+  </div>
+  <div class="quick-actions">
+    <button class="q-btn" id="btnMemory">🧠 Memory</button>
+    <button class="q-btn" id="btnBrowser">🌐 Browser</button>
+    <button class="q-btn" id="btnScreenShare">🖥 Share Screen</button>
+    <button class="q-btn" id="btnSettings">⚙️</button>
+  </div>
+</aside>
+
+<!-- ============ SCREEN SHARING INDICATOR ============ -->
+<div id="screenIndicator" class="screen-indicator" style="display:none">
+  <div class="screen-ind-left">
+    <span class="rec-dot"></span>
+    <span class="screen-ind-title">Screen Sharing Active</span>
+  </div>
+  <button class="mini-btn" id="btnVisionMode">👁 Vision</button>
+  <button class="mini-btn" id="screenPause">⏸ Pause</button>
+  <button class="mini-btn" id="screenStop">⏹ Stop</button>
+</div>
+
+<!-- ============ BROWSER PANEL ============ -->
+<section id="browserPanel" class="browser-panel">
+  <div class="browser-top">
+    <div id="browserTabs" class="browser-tabs"></div>
+    <div class="browser-top-btns">
+      <button class="icon-btn" id="btnNewTab" title="New tab">＋</button>
+      <button class="icon-btn" id="btnHistory" title="History">🕘</button>
+      <button class="icon-btn" id="btnBrowserClose" title="Close browser">✕</button>
+    </div>
+  </div>
+  <div class="browser-addressbar">
+    <button class="nav-btn" id="btnBack" title="Back">←</button>
+    <button class="nav-btn" id="btnFwd" title="Forward">→</button>
+    <button class="nav-btn" id="btnReload" title="Reload">⟳</button>
+    <button class="nav-btn" id="btnHome" title="Home">⌂</button>
+    <input id="browserAddress" type="text" placeholder="Type a web address or search…" autocomplete="off">
+    <button class="nav-btn go-btn" id="btnGo" title="Go">➤</button>
+    <button class="nav-btn" id="btnExternal" title="Open in new browser tab">↗</button>
+  </div>
+  <div id="browserBlockedStrip" class="blocked-strip" style="display:none">
+    <span><b class="blocked-host"></b> usually blocks embedding — you can still open it externally.</span>
+    <button class="mini-btn" id="btnBlockedOpen">Open externally ↗</button>
+  </div>
+  <div class="browser-body">
+    <iframe id="browserFrame" class="browser-frame" allowfullscreen></iframe>
+    <div id="browserLoading" class="browser-loading"><div class="spinner"></div></div>
+  </div>
+  <div id="browserHistory" class="browser-history" style="display:none">
+    <div class="history-head">
+      <span>Browser History</span>
+      <button class="icon-btn" id="btnHistoryClose">✕</button>
+    </div>
+    <div id="browserHistoryList" class="history-list"></div>
+  </div>
+</section>
+
+<!-- ============ MEMORY MODAL ============ -->
+<div class="modal" id="memoryModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>🧠 Myraa's memory of you</h2>
+      <button class="icon-btn modal-close" id="memoryClose">✕</button>
+    </div>
+    <p class="modal-sub">Stored automatically while you talk — and kept for months, not just this session.</p>
+    <div id="memoryList" class="memory-list"></div>
+    <div class="modal-foot">
+      <button class="mini-btn" id="memoryExtract">⛏ Mine recent chat for memories</button>
+      <button class="mini-btn danger" id="memoryClear">Erase all memory</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="modal" id="settingsModal">
+  <div class="modal-card settings-card">
+    <div class="modal-head">
+      <h2>⚙️ Settings</h2>
+      <button class="icon-btn modal-close" id="settingsClose">✕</button>
+    </div>
+
+    <div class="settings-scroll">
+      <section class="set-group">
+        <h3>🤖 Gemini</h3>
+        <label>API key
+          <input type="password" id="setApiKey" placeholder="AIza..." autocomplete="off">
+        </label>
+        <div class="set-row">
+          <label>Chat model
+            <select id="setModel"></select>
+          </label>
+          <label>Vision model
+            <select id="setVisionModel"></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="set-group">
+        <h3>🎀 Cute voice <span class="hint">soft · high-pitched · anime</span></h3>
+        <label class="check"><input type="checkbox" id="setVoiceEnabled"> Enable Myraa's voice</label>
+        <label class="check"><input type="checkbox" id="setVoiceOnReply"> Speak replies aloud</label>
+        <div class="set-row">
+          <label>Pitch <span id="pitchVal"></span>
+            <input type="range" id="setVoicePitch" min="0.6" max="1.8" step="0.01">
+          </label>
+          <label>Speed <span id="rateVal"></span>
+            <input type="range" id="setVoiceRate" min="0.5" max="1.3" step="0.01">
+          </label>
+        </div>
+        <label>Voice
+          <select id="setVoiceName"></select>
+        </label>
+        <button class="mini-btn" id="btnTestVoice">▶ Test voice</button>
+      </section>
+
+      <section class="set-group">
+        <h3>💬 Human conversation mode</h3>
+        <label class="check"><input type="checkbox" id="setConversationMode"> Continuous listening (no wake words)</label>
+        <label class="check"><input type="checkbox" id="setAckReactions"> Natural reactions ("Hmm...", "I see...")</label>
+        <label class="check"><input type="checkbox" id="setSilenceFollowups"> Gentle check-ins after long silence</label>
+      </section>
+
+      <section class="set-group">
+        <h3>🧠 Memory</h3>
+        <label class="check"><input type="checkbox" id="setMemoryEnabled"> Use long-term memory</label>
+        <label class="check"><input type="checkbox" id="setAutoExtract"> Learn from every conversation</label>
+      </section>
+
+      <section class="set-group">
+        <h3>🖥 Screen vision</h3>
+        <label class="check"><input type="checkbox" id="setVisionMode"> Screen Vision mode (auto-analyze frames)</label>
+        <label>Capture interval (ms)
+          <input type="number" id="setCaptureInterval" min="2000" max="30000" step="1000">
+        </label>
+      </section>
+
+      <section class="set-group">
+        <h3>✨ Character</h3>
+        <label class="check"><input type="checkbox" id="setEffects"> Ambient effects (glow, particles)</label>
+        <p class="hint">Drop your character videos below, or place them in <code>assets/videos/</code> with these exact names:</p>
+        <p class="hint code-block">JUST WAITNG.mp4 (idle)<br>ANIMA GIRL THINKING.mp4 (thinking)<br>ANIMA GIRL TAKING.mp4 (talking)</p>
+        <label>Idle video <input type="file" id="setVideoIdle" accept="video/*"></label>
+        <label>Thinking video <input type="file" id="setVideoThinking" accept="video/*"></label>
+        <label>Talking video <input type="file" id="setVideoTalking" accept="video/*"></label>
+      </section>
+    </div>
+
+    <div class="modal-foot">
+      <button class="primary-btn" id="settingsSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- hidden capture video -->
+<video id="screenCaptureVideo" class="screen-capture-video" muted playsinline style="display:none"></video>
+
+<!-- toasts -->
+<div id="toasts" class="toasts"></div>
+
+<script src="js/config.js"></script>
+<script src="js/gemini.js"></script>
+<script src="js/memory.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/character.js"></script>
+<script src="js/screen.js"></script>
+<script src="js/browser.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

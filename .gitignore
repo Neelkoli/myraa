@@ -1,0 +1,4 @@
+# dev-only (never deploy)
+.freebuff/
+*.log
+.DS_Store
