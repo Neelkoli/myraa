@@ -84,6 +84,14 @@ MYRAA.browser = (function () {
     try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
   }
 
+  // Site favicon via Google's public service (images don't need CORS)
+  function faviconUrl(u) {
+    try {
+      return 'https://www.google.com/s2/favicons?domain=' +
+        encodeURIComponent(new URL(u).hostname) + '&sz=64';
+    } catch (e) { return ''; }
+  }
+
   function isBlocker(u) {
     const h = hostOf(u);
     return KNOWN_BLOCKERS.some((b) => h === b || h.endsWith('.' + b));
@@ -498,7 +506,7 @@ MYRAA.browser = (function () {
       if (epoch !== searchEpoch) return true;   // stale — discard silently
       list.forEach((r) => {
         results.appendChild(buildCard({
-          source: 'Web', title: r.title, snippet: r.snippet, url: r.url, icon: '🌐',
+          source: 'Web', title: r.title, snippet: r.snippet, url: r.url, icon: '🌐', image: r.image,
         }));
       });
       return true;
@@ -690,9 +698,34 @@ MYRAA.browser = (function () {
     });
   }
 
-  function buildCard({ source, title, snippet, url, icon }) {
+  function buildCard({ source, title, snippet, url, icon, image }) {
     const card = document.createElement('div');
     card.className = 'search-card';
+    // Thumbnail: og:image when the proxy resolved one, otherwise the site favicon
+    const thumb = document.createElement('div');
+    thumb.className = 'search-thumb';
+    const fav = faviconUrl(url);
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.alt = '';
+    img.decoding = 'async';
+    if (image) {
+      img.src = image;
+      img.onerror = () => {
+        img.onerror = null;
+        if (fav) img.src = fav;
+        else thumb.style.display = 'none';
+      };
+    } else if (fav) {
+      img.src = fav;
+      img.onerror = () => { thumb.style.display = 'none'; };
+    } else {
+      thumb.style.display = 'none';
+    }
+    thumb.appendChild(img);
+    const body = document.createElement('div');
+    body.className = 'search-card-body';
     const top = document.createElement('div');
     top.className = 'search-card-top';
     const src = document.createElement('span');
@@ -725,7 +758,8 @@ MYRAA.browser = (function () {
     const host = document.createElement('div');
     host.className = 'search-host';
     try { host.textContent = new URL(url).hostname; } catch (e) { host.textContent = url; }
-    card.appendChild(top); card.appendChild(t); card.appendChild(sn); card.appendChild(host);
+    body.appendChild(top); body.appendChild(t); body.appendChild(sn); body.appendChild(host);
+    card.appendChild(thumb); card.appendChild(body);
     card.addEventListener('click', () => {
       const tab = currentTab();
       if (tab) navigate(tab, url);

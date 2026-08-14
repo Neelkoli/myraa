@@ -92,6 +92,44 @@ async function fetchSource(url) {
   return r.text();
 }
 
+/* Resolve a result page's og:image server-side (browsers can't due to CORS). */
+async function fetchOgImage(url, timeoutMs) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!r.ok) return null;
+    const html = await r.text();
+    const m =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    if (!m) return null;
+    let img = (m[1] || '').trim();
+    if (!img) return null;
+    if (img.indexOf('//') === 0) img = 'https:' + img;
+    else if (img.indexOf('/') === 0) img = new URL(img, url).href;
+    if (!/^https?:/i.test(img)) return null;
+    return img.slice(0, 500);
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Attach og:image to the top few results (parallel, timeout-capped). */
+async function enrichWithImages(results, count) {
+  const top = results.slice(0, count);
+  await Promise.all(top.map(async (r) => {
+    try {
+      r.image = await fetchOgImage(r.url, 3500);
+    } catch (e) {
+      r.image = null;
+    }
+  }));
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'method not allowed' });
@@ -117,6 +155,7 @@ export default async function handler(req, res) {
       const body = await attempt.fn();
       const results = attempt.parse(body, max);
       if (results.length) {
+        await enrichWithImages(results, 3);
         res.setHeader('Cache-Control', 'public, max-age=300');
         res.status(200).json({ query: q, source: attempt.name, results });
         return;
