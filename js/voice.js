@@ -70,6 +70,10 @@ MYRAA.voice = (function () {
     if (onStart) utter.onstart = onStart;
     if (onEnd) utter.onend = onEnd;
     utter.onerror = () => { if (onEnd) onEnd(); };
+    // word boundaries give the avatar natural lip movement while speaking
+    utter.onboundary = () => {
+      if (MYRAA.voice.onLipPulse) MYRAA.voice.onLipPulse();
+    };
     // small delay helps Chrome actually honor the voice
     window.speechSynthesis.speak(utter);
   }
@@ -172,6 +176,6 @@ MYRAA.voice = (function () {
     getVoices, loadVoices, pickVoice, speak, testVoice, interrupt, isSpeaking,
     supported, startListening, stopListening, isListening: () => listening,
     setOnListeningChange: (fn) => { onListeningChange = fn; },
-    onVoicesChanged: null, onInterim: null, onSilence: null,
+    onVoicesChanged: null, onInterim: null, onSilence: null, onLipPulse: null,
   };
 })();

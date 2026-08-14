@@ -83,8 +83,10 @@ Drop these files into `myraa/assets/videos/` (exact names), or upload them in Se
 | THINKING | `ANIMA GIRL THINKING.mp4`    |
 | TALKING  | `ANIMA GIRL TAKING.mp4`      |
 
-Until the videos exist, Hiyuki shows a cute animated fallback avatar so the app is fully
-usable right away. Videos are muted on purpose (the TTS provides the voice) and loop.
+Until the videos exist, Hiyuki appears as an animated white-haired girl avatar — she
+breathes, blinks, glances around, tilts her head, smiles, and moves her lips in sync with
+what she's saying (TTS word boundaries drive the lip movement). Videos are muted on
+purpose (the TTS provides the voice) and loop.
 
 ## Features in detail
 

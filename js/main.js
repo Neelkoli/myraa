@@ -364,6 +364,7 @@
     MYRAA.voice.setOnListeningChange(() => updateMicUI());
     MYRAA.voice.onInterim = MYRAA.chat.onInterim;
     MYRAA.voice.onSilence = MYRAA.chat.onSilenceDetected;
+    MYRAA.voice.onLipPulse = () => MYRAA.character.lipPulse();
 
     // status text follows the character state machine
     MYRAA.character.onStateChange((s) => {

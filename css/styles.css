@@ -111,113 +111,103 @@ body {
 .stage-thinking .char-video.active { filter: saturate(1.1) brightness(1.03) drop-shadow(0 0 26px rgba(14,116,144,.25)); }
 .stage-talking .char-video.active { filter: saturate(1.1) brightness(1.03) drop-shadow(0 0 26px rgba(219,39,119,.28)); }
 
-/* ============ FALLBACK AVATAR (when videos are missing) ============ */
-.fallback-face {
+/* ============ ANIMATED WHITE-HAIRED GIRL (when videos are missing) ============ */
+.anime-avatar {
   position: absolute;
   inset: 0;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  display: none;
 }
-.fallback-face.active { display: flex; }
+.anime-avatar.active { display: flex; }
 
-.fb-aura {
-  position: absolute;
-  width: 70%;
-  height: 70%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, rgba(240,171,252,.5), rgba(167,139,250,.3) 45%, rgba(103,232,249,.15) 75%, transparent 100%);
-  animation: aura 5s ease-in-out infinite;
-  filter: blur(2px);
-}
-@keyframes aura {
-  0%, 100% { transform: scale(0.98); opacity: 0.85; }
-  50% { transform: scale(1.06); opacity: 1; }
+.anime-svg {
+  width: 88%;
+  height: 88%;
+  filter: drop-shadow(0 12px 28px rgba(124, 58, 237, 0.16));
 }
 
-.fb-head {
-  position: relative;
-  width: 34%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 38% 32%, #fdf3ff 0%, #f3ddff 45%, #d9b8ff 80%);
-  box-shadow: 0 0 40px rgba(219, 39, 119, 0.20), inset -10px -14px 30px rgba(150, 100, 220, 0.28);
-  animation: breath 3.4s ease-in-out infinite;
-}
-@keyframes breath {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-}
-
-.fb-eye {
-  position: absolute;
-  top: 42%;
-  width: 7%;
-  height: 9%;
-  border-radius: 50%;
-  background: #4c2a8f;
-  animation: blink 4.5s infinite;
-}
-.fb-eye-l { left: 27%; }
-.fb-eye-r { right: 27%; }
-@keyframes blink {
-  0%, 91%, 100% { transform: scaleY(1); }
-  94% { transform: scaleY(0.08); }
-}
-
-.fb-blush {
-  position: absolute;
-  top: 56%;
-  width: 12%;
-  height: 7%;
-  border-radius: 50%;
-  background: rgba(244, 114, 182, 0.45);
-  filter: blur(1px);
-}
-.fb-blush-l { left: 16%; }
-.fb-blush-r { right: 16%; }
-
-.fb-mouth {
-  position: absolute;
-  top: 58%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8%;
-  height: 5%;
-  border-radius: 0 0 50% 50%;
-  border-bottom: 3px solid #7c3aed;
-}
-
-/* state expressions for fallback */
-.state-thinking .fb-eye { animation: lookUp 2.6s ease-in-out infinite; }
-@keyframes lookUp {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-26%); }
-}
-.state-talking .fb-mouth {
-  width: 9%;
-  height: 8%;
-  background: #7c3aed;
-  border-radius: 50%;
-  animation: talk 0.32s ease-in-out infinite alternate;
-}
-@keyframes talk {
-  from { transform: translateX(-50%) scaleY(0.55); }
-  to { transform: translateX(-50%) scaleY(1.05); }
-}
-.state-thinking .fb-aura { background: radial-gradient(circle at 35% 30%, rgba(103,232,249,.5), rgba(167,139,250,.3) 50%, transparent 80%); }
-.state-talking .fb-aura { background: radial-gradient(circle at 35% 30%, rgba(240,171,252,.55), rgba(167,139,250,.3) 50%, transparent 80%); }
-
-.fb-name {
-  margin-top: 3vh;
+.avatar-name {
+  margin-top: -0.5vh;
   font-size: 13px;
   letter-spacing: 0.4em;
   color: var(--text-dim);
   text-transform: uppercase;
+}
+
+/* breathing — the whole figure rises and falls gently */
+#avatarBreath {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: breath 3.6s ease-in-out infinite;
+}
+@keyframes breath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.018); }
+}
+
+/* head tilts (JS-triggered, human-like curiosity) */
+#avatarTilt {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transition: transform 0.5s ease;
+}
+.tilting-l #avatarTilt { transform: rotate(-3.2deg); }
+.tilting-r #avatarTilt { transform: rotate(3.2deg); }
+
+/* blink — skin eyelids sweep over the eyes */
+#lidL, #lidR {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transform: scaleY(0);
+  transition: transform 0.08s ease;
+}
+.blinking #lidL,
+.blinking #lidR { transform: scaleY(1); }
+
+/* glance — irises wander; look up while thinking */
+.iris {
+  transform-box: fill-box;
+  transition: transform 0.4s ease;
+}
+.glance-l .iris { transform: translateX(-3px); }
+.glance-r .iris { transform: translateX(3px); }
+.state-thinking .iris { transform: translateY(-3.5px); }
+
+/* mouth — closed smile + open lip shape (lip sync via JS) */
+#mouthClosed {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 0.3s ease, opacity 0.15s ease;
+}
+#mouthOpen {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  transition: transform 0.09s ease, opacity 0.09s ease;
+}
+.smiling #mouthClosed { transform: scale(1.28, 1.15); }
+
+/* hair — side locks sway like a breeze */
+#lockL {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  animation: swayL 3.8s ease-in-out infinite;
+}
+#lockR {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  animation: swayR 4.2s ease-in-out infinite;
+}
+@keyframes swayL {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(2.4deg); }
+}
+@keyframes swayR {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-2.6deg); }
 }
 
 /* status chip */
