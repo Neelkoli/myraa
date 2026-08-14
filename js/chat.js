@@ -94,8 +94,13 @@ MYRAA.chat = (function () {
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error(err);
-        appendMessage('myraa', 'Hmm... something went wrong. ' + (err.message || '') +
-          (err.message && /key|model|rate/i.test(err.message) ? ' Check Settings.' : ''));
+        let hint = '';
+        if (/failed to fetch|networkerror/i.test(err.message || '')) {
+          hint = ' Your browser blocked the request to Google (CORS) or you lost internet.';
+        } else if (/key|model|rate/i.test(err.message || '')) {
+          hint = ' Check Settings.';
+        }
+        appendMessage('myraa', 'Hmm... something went wrong. ' + (err.message || '') + hint);
       }
     } finally {
       busy = false;

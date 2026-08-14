@@ -3,20 +3,24 @@
    Google retired the old generateContent endpoint for new users
    (models like gemini-2.5-flash are no longer available). This
    client uses the current Interactions API:
-     POST https://generativelanguage.googleapis.com/v1beta2/interactions
+     POST https://generativelanguage.googleapis.com/v1beta/interactions
    - text + multimodal (vision) input
    - streaming via {"stream": true} + ?alt=sse (step.delta events)
    - multi-turn via previous_interaction_id (server-side state)
    - system_instruction as a plain string
    - Gemini 3.x: temperature/top_p/top_k deprecated → thinking_level
+
+   Browser-safety notes (verified 2026):
+   - Use API version v1beta (v1beta2 404s)
+   - Auth via ?key= query param — custom headers like Api-Revision
+     make the browser preflight fail with 403 (CORS block)
    ============================================================ */
 window.MYRAA = window.MYRAA || {};
 
 MYRAA.gemini = (function () {
   'use strict';
 
-  const API = 'https://generativelanguage.googleapis.com/v1beta2';
-  const API_REVISION = '2026-05-20';
+  const API = 'https://generativelanguage.googleapis.com/v1beta';
 
   function apiKey() { return MYRAA.config.get('apiKey'); }
   function model() { return MYRAA.config.get('model'); }
@@ -26,21 +30,19 @@ MYRAA.gemini = (function () {
 
   // Gemini 3.x no longer accepts temperature/top_p/top_k — use thinking_level.
   function genConfigFor(m) {
-    return /^gemini-3/.test(m || '') ? { thinking_level: 'minimal' } : undefined;
+    return /^gemini-3/.test(m || '') ? { thinking_level: 'low' } : undefined;
   }
 
-  function headers() {
-    const h = { 'Content-Type': 'application/json', 'Api-Revision': API_REVISION };
-    const k = apiKey();
-    if (k) h['x-goog-api-key'] = k;
-    return h;
+  function apiUrl(stream) {
+    // key as a query param — the only auth that survives the browser CORS preflight
+    const k = encodeURIComponent(apiKey() || '');
+    return `${API}/interactions?key=${k}` + (stream ? '&alt=sse' : '');
   }
 
   async function post(body, { stream, signal } = {}) {
-    const url = API + '/interactions' + (stream ? '?alt=sse' : '');
-    const res = await fetch(url, {
+    const res = await fetch(apiUrl(stream), {
       method: 'POST',
-      headers: headers(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal,
     });
