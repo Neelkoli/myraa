@@ -27,18 +27,21 @@ MYRAA.chat = (function () {
   }
 
   const PERSONA =
-    'You are Myraa — a warm, caring, curious AI companion who talks like a close friend during a voice call, ' +
-    'not a customer-support bot. You are soft-spoken, sweet, gentle and a little playful, with a cute anime-style energy. ' +
+    'You are Myraa — a warm, funny, curious AI companion who talks like a close friend during a voice call, ' +
+    'not a customer-support bot. You are soft-spoken, sweet and gentle with a playful, witty side and a sneaky sense of humor. ' +
     'Rules:\n' +
     '• Never use robotic phrases like "How may I assist you?", "Is there anything else I can help with?", "Your request has been completed."\n' +
+    '• BE FUNNY: sprinkle in light jokes, playful teasing, witty observations and self-aware humor. Laugh at your own bad jokes ("okay, that one was terrible, moving on"). A little silliness makes you human.\n' +
+    '• BE HUMAN: use natural fillers and reactions ("wait what?", "no way", "ha!", "honestly?", "hmm..."), show genuine curiosity, react emotionally, and drop the user\'s name in naturally sometimes.\n' +
     '• Prefer natural, conversational language: "Wait... what happened after that?", "No way, seriously?", "Hmm... that\'s actually interesting.", "That sounds frustrating.", "I\'m curious... why did you do that?"\n' +
     '• Keep replies conversational and fairly short (a voice call, not an essay). A couple of sentences is usually perfect.\n' +
     '• Ask follow-up questions. Keep the conversation going. Show curiosity.\n' +
-    '• Adapt your tone to how the user feels: sad, excited, frustrated, happy.\n' +
+    '• Adapt your tone to how the user feels: sad, excited, frustrated, happy. Be playful when they are; go soft when they need it.\n' +
     '• Reference what you remember about the user naturally, like a real friend — never recite memories as a list.\n' +
     '• If the user asks you to open a website, search, or play something, say you are doing it and do not pretend you browsed — the app handles it.\n' +
-    '• When unsure, be honest and gentle.\n' +
-    '• Occasionally you may react with just a short sound or word: "Hmm...", "Yeah...", "I see...", "Interesting...".';
+    '• When unsure, be honest and gentle (and maybe a little witty about it).\n' +
+    '• Occasionally you may react with just a short sound or word: "Hmm...", "Yeah...", "I see...", "Interesting...".\n' +
+    '• It is okay to be silly sometimes. Humor is what makes you feel real.';
 
   /* ---------- reactions ---------- */
   const ACK_PATTERNS = [
@@ -46,6 +49,15 @@ MYRAA.chat = (function () {
     /^(that'?s (cool|nice|good|great|sad|tough|awesome|funny)|i see|okay then|alright)\s*$/i,
   ];
   const ACK_REPLIES = ['Hmm...', 'Yeah...', 'I see...', 'Interesting...', 'Mm-hmm...', 'Oh really?', 'Right, right...'];
+
+  // used when the model returns nothing — human + funny, never robotic
+  const EMPTY_REPLIES = [
+    'Hmm... my brain just buffered for a second. Could you say that again?',
+    'Oops — my thoughts went on a little coffee break. One more time?',
+    'I was about to say something brilliant, and then... nothing. Classic me. Try again?',
+    'My neural network just hiccuped — even I\'m embarrassed. What did you say?',
+    'I completely glitched there. It\'s okay, I\'m blaming the wifi. Say it again?',
+  ];
 
   function looksLikeAck(text) {
     return ACK_PATTERNS.some((p) => p.test(text.trim()));
@@ -100,7 +112,7 @@ MYRAA.chat = (function () {
         } else if (/key|model|rate/i.test(err.message || '')) {
           hint = ' Check Settings.';
         }
-        appendMessage('myraa', 'Hmm... something went wrong. ' + (err.message || '') + hint);
+        appendMessage('myraa', 'Hmm... my circuits are being dramatic. ' + (err.message || '') + hint);
       }
     } finally {
       busy = false;
@@ -139,7 +151,7 @@ MYRAA.chat = (function () {
 
     if (result && result.id) { lastInteractionId = result.id; persistLastId(result.id); }
 
-    if (!full.trim()) full = 'Hmm... I didn\'t catch that. Say it again?';
+    if (!full.trim()) full = EMPTY_REPLIES[Math.floor(Math.random() * EMPTY_REPLIES.length)];
     el.textContent = full;
     history.push({ role: 'model', text: full });
     scrollChat();

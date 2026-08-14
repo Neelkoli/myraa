@@ -100,23 +100,27 @@ MYRAA.gemini = (function () {
       buffer = lines.pop();
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed.startsWith('data:')) continue;
-        const json = trimmed.slice(5).trim();
-        if (!json) continue;
+        if (!trimmed) continue;
+        // accept SSE "data: {...}" lines and bare JSON lines (NDJSON) alike
+        const json = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
+        if (!json || json === '[DONE]') continue;
         let evt;
         try { evt = JSON.parse(json); } catch (e) { continue; }
-        if (!evt || typeof evt.type !== 'string') continue;
+        if (!evt) continue;
 
-        if (evt.type === 'interaction.created' || evt.type === 'interaction.completed') {
+        // live API sends "event_type"; docs also showed "type" — accept both
+        const type = evt.event_type || evt.type || '';
+
+        if (type === 'interaction.created' || type === 'interaction.completed') {
           if (evt.interaction && evt.interaction.id) interactionId = evt.interaction.id;
-        } else if (evt.type === 'step.delta' && evt.delta) {
+        } else if (type === 'step.delta' && evt.delta) {
           // only stream the final text, never model thoughts
           if (evt.delta.type === 'text' && typeof evt.delta.text === 'string' && evt.delta.text) {
             full += evt.delta.text;
             if (onDelta) onDelta(evt.delta.text);
           }
-        } else if (evt.error) {
-          throw new Error((evt.error.message || 'Gemini streaming error') + (evt.error.status ? ' (' + evt.error.status + ')' : ''));
+        } else if (type === 'error' && evt.error) {
+          throw new Error(evt.error.message || 'Gemini streaming error');
         }
       }
     }
