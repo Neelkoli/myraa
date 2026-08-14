@@ -1,9 +1,11 @@
 /* ============================================================
    Vercel serverless function — full web search proxy
-   DuckDuckGo's search page can't be called from the browser
-   (CORS) nor embedded (frame busting), so this function fetches
-   the HTML results server-side and returns clean JSON.
-   No API key required.
+   Search engines refuse CORS calls from the browser and often
+   block datacenter IPs, so this function tries a chain of
+   no-key sources server-side and returns clean JSON:
+     1. Bing RSS      (https://www.bing.com/search?q=X&format=rss)
+     2. DuckDuckGo HTML (https://html.duckduckgo.com/html/?q=X)
+     3. DuckDuckGo lite  (https://lite.duckduckgo.com/lite/?q=X)
    ============================================================ */
 
 const UA =
@@ -12,18 +14,36 @@ const UA =
 function decodeEntities(s) {
   return (s || '')
     .replace(/&amp;/g, '&')
-    .replace(/&#x27;/g, "'")
+    .replace(/&#?0?39;/g, "'")
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
-    .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
     .trim();
 }
 
-function parseResults(html, max) {
+/* ---------- source 1: Bing RSS ---------- */
+function parseBingRss(xml, max) {
   const results = [];
-  // Each result block starts with <div class="result results_links ...
+  const items = xml.split('<item>').slice(1);
+  for (const item of items) {
+    const t = item.match(/<title>(.*?)<\/title>/s);
+    const l = item.match(/<link>(.*?)<\/link>/s);
+    const d = item.match(/<description>(.*?)<\/description>/s);
+    if (!t || !l) continue;
+    const title = decodeEntities(t[1].replace(/<[^>]+>/g, ''));
+    const url = l[1].trim();
+    if (!/^https?:/i.test(url)) continue;
+    const snippet = d ? decodeEntities(d[1].replace(/<[^>]+>/g, '')) : '';
+    results.push({ title, url, snippet: snippet.slice(0, 300) });
+    if (results.length >= max) break;
+  }
+  return results;
+}
+
+/* ---------- source 2: DuckDuckGo HTML ---------- */
+function parseDdgHtml(html, max) {
+  const results = [];
   const blocks = html.split('<div class="result results_links');
   for (let i = 1; i < blocks.length; i++) {
     const b = blocks[i];
@@ -35,6 +55,7 @@ function parseResults(html, max) {
         href = decodeURIComponent(href.split('uddg=')[1].split('&')[0]);
       } catch (e) { /* keep raw href */ }
     }
+    if (!/^https?:/i.test(href)) continue;
     const title = decodeEntities(a[2].replace(/<[^>]+>/g, ''));
     const sn = b.match(/class="result__snippet"[^>]*>(.*?)<\/a>/s);
     const snippet = sn ? decodeEntities(sn[1].replace(/<[^>]+>/g, '')) : '';
@@ -44,8 +65,34 @@ function parseResults(html, max) {
   return results;
 }
 
+/* ---------- source 3: DuckDuckGo lite ---------- */
+function parseDdgLite(html, max) {
+  const results = [];
+  const links = html.match(/class="result-link"[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gs) || [];
+  const anchors = Array.from(html.matchAll(/class="result-link"[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gs));
+  for (const m of anchors) {
+    const url = m[1].replace(/&amp;/g, '&');
+    if (!/^https?:/i.test(url)) continue;
+    const title = decodeEntities(m[2].replace(/<[^>]+>/g, ''));
+    // snippet usually follows in the same <tr>, a <td class="result-snippet">
+    const rest = html.slice(m.index);
+    const sn = rest.match(/class="result-snippet"[^>]*>(.*?)<\/td>/s);
+    const snippet = sn ? decodeEntities(sn[1].replace(/<[^>]+>/g, '')) : '';
+    results.push({ title, url, snippet: snippet.slice(0, 300) });
+    if (results.length >= max) break;
+  }
+  return results;
+}
+
+async function fetchSource(url) {
+  const r = await fetch(url, {
+    headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9' },
+  });
+  if (!r.ok) throw new Error('status ' + r.status);
+  return r.text();
+}
+
 export default async function handler(req, res) {
-  // Only GET is meaningful here
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'method not allowed' });
     return;
@@ -57,29 +104,25 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'missing query parameter q' });
     return;
   }
-  try {
-    const r = await fetch(
-      'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q),
-      {
-        headers: {
-          'User-Agent': UA,
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
+
+  const enc = encodeURIComponent(q);
+  const attempts = [
+    { name: 'bing', fn: () => fetchSource('https://www.bing.com/search?q=' + enc + '&format=rss'), parse: parseBingRss },
+    { name: 'ddg-html', fn: () => fetchSource('https://html.duckduckgo.com/html/?q=' + enc), parse: parseDdgHtml },
+    { name: 'ddg-lite', fn: () => fetchSource('https://lite.duckduckgo.com/lite/?q=' + enc), parse: parseDdgLite },
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const body = await attempt.fn();
+      const results = attempt.parse(body, max);
+      if (results.length) {
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        res.status(200).json({ query: q, source: attempt.name, results });
+        return;
       }
-    );
-    if (!r.ok) {
-      res.status(502).json({ error: 'upstream search failed (' + r.status + ')' });
-      return;
-    }
-    const html = await r.text();
-    const results = parseResults(html, max);
-    if (!results.length) {
-      res.status(200).json({ query: q, results: [], empty: true });
-      return;
-    }
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    res.status(200).json({ query: q, results });
-  } catch (e) {
-    res.status(502).json({ error: String((e && e.message) || e) });
+    } catch (e) { /* try next source */ }
   }
+
+  res.status(200).json({ query: q, results: [], empty: true });
 }
