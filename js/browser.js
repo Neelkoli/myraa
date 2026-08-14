@@ -72,7 +72,7 @@ MYRAA.browser = (function () {
   }
 
   function isYoutubeWatchUrl(u) {
-    return /(^|\.)youtube\.com\/watch\?v=|youtu\.be\//i.test(u);
+    return /(^|[.\/])youtube\.com\/watch(\?|$)/i.test(u) || /youtu\.be\//i.test(u);
   }
 
   function youtubeIdFromUrl(u) {
@@ -249,17 +249,39 @@ MYRAA.browser = (function () {
     const title = opts && opts.title ? opts.title : titleFor(url);
     tab.title = title;
 
-    // YouTube watch links play inside the embed player
+    // YouTube URLs are rewritten to their embeddable equivalents so they
+    // play inside the panel instead of tripping the frame blocker:
+    //   watch?v=ID / youtu.be/ID → embed player
+    //   /results?search_query=Q  → live search player
+    //   youtube.com (homepage)   → live search player
+    // Channel / @handle / shorts / playlist pages have no embeddable form
+    // and keep the amber "open externally" strip instead.
     if (isYoutubeWatchUrl(url)) {
       const id = youtubeIdFromUrl(url);
       if (id) { tab.url = YT_EMBED + id; tab.title = 'YouTube'; }
+    } else {
+      const yt = url.match(/^https?:\/\/(?:www\.|m\.)?youtube\.com\/([^?#]*)([?#].*)?$/i);
+      if (yt) {
+        const path = yt[1] || '';
+        const qm = url.match(/[?&](?:search_query|q)=([^&#]+)/);
+        if (qm) {
+          const q = decodeURIComponent(qm[1]);
+          tab.url = YT_SEARCH_EMBED + q;
+          tab.title = 'YouTube: ' + q.slice(0, 40);
+        } else if (path === '' || path === '/' || /^(results|search)$/.test(path)) {
+          // homepage → live search player with a friendly default query
+          // (an empty list renders YouTube's "video unavailable" error)
+          tab.url = YT_SEARCH_EMBED + 'music';
+          tab.title = 'YouTube';
+        }
+      }
     }
 
     setIframe(tab.url);
     pushGlobalHistory(url);
     renderTabs();
     updateAddressBar();
-    updateBlockStrip(url);
+    updateBlockStrip(tab.url);
   }
 
   function titleFor(url) {
