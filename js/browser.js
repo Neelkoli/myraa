@@ -330,6 +330,7 @@ MYRAA.browser = (function () {
     if (!value || value === 'search the web…') return;   // placeholder, not a real query
     const cmd = parseCommand(value);
     if (cmd.type === 'search') { showSearch(cmd.value); return; }
+    if (cmd.type === 'youtubeSearch') { playResolved(t, cmd.value); return; }
     const resolved = resolveCommand(cmd);
     if (!resolved) { MYRAA.ui && MYRAA.ui.toast('Could not open that.', 'error'); return; }
     navigate(t, resolved.url, { title: resolved.title, special: resolved.special });
@@ -399,11 +400,28 @@ MYRAA.browser = (function () {
     return s.length >= 3 && s.length <= 60 && !MEDIA_STOP.test(s);
   }
 
-  function playOnYouTube(q) {
+  // "Play X" resolves to a real video ID via /api/yt (Vercel serverless) and
+  // opens the official single-video embed. If the resolver is unavailable
+  // (e.g. running locally without Vercel) it falls back to the search player.
+  async function playResolved(tab, q) {
+    try {
+      const res = await fetch('/api/yt?q=' + encodeURIComponent(q));
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.id) {
+          navigate(tab, YT_EMBED + data.id, { title: 'YouTube: ' + q.slice(0, 40), special: 'youtube' });
+          return;
+        }
+      }
+    } catch (e) { /* fall through to the search player */ }
+    navigate(tab, YT_SEARCH_EMBED + encodeURIComponent(q), { title: 'YouTube: ' + q.slice(0, 40), special: 'youtube' });
+  }
+
+  async function playOnYouTube(q) {
     const tab = currentTab();
     if (!tab || !q) return;
     closeSearch();
-    navigate(tab, YT_SEARCH_EMBED + encodeURIComponent(q), { title: 'YouTube: ' + q, special: 'youtube' });
+    await playResolved(tab, q);
   }
 
   function rememberSearch(q) {
@@ -858,6 +876,12 @@ MYRAA.browser = (function () {
       openPanel();
       createTab();
       showSearch(cmd.value);
+      return true;
+    }
+    if (cmd.type === 'youtubeSearch') {
+      openPanel();
+      const tab = createTab();
+      playResolved(tab, cmd.value);   // resolves to the real video embed
       return true;
     }
     const resolved = resolveCommand(cmd);
