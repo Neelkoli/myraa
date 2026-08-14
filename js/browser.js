@@ -189,6 +189,7 @@ MYRAA.browser = (function () {
   }
 
   function switchTab(id) {
+    closeSearch();
     activeId = id;
     const t = currentTab();
     setIframe(t.url || 'about:blank');
@@ -231,6 +232,7 @@ MYRAA.browser = (function () {
   }
 
   function navigate(tab, url, opts) {
+    closeSearch();
     tab.url = url;
     if (tab.idx < tab.history.length - 1) tab.history = tab.history.slice(0, tab.idx + 1);
     tab.history.push(url);
@@ -259,6 +261,7 @@ MYRAA.browser = (function () {
   }
 
   function goBack() {
+    closeSearch();
     const t = currentTab();
     if (!t || t.idx <= 0) return;
     t.idx--;
@@ -268,6 +271,7 @@ MYRAA.browser = (function () {
     updateBlockStrip(t.url);
   }
   function goForward() {
+    closeSearch();
     const t = currentTab();
     if (!t || t.idx >= t.history.length - 1) return;
     t.idx++;
@@ -277,6 +281,7 @@ MYRAA.browser = (function () {
     updateBlockStrip(t.url);
   }
   function reload() {
+    closeSearch();
     const t = currentTab();
     if (!t || !t.url) return;
     setIframe(t.url);
@@ -294,6 +299,7 @@ MYRAA.browser = (function () {
     const value = (raw || '').trim();
     if (!value || value === 'search the web…') return;   // placeholder, not a real query
     const cmd = parseCommand(value);
+    if (cmd.type === 'search') { showSearch(cmd.value); return; }
     const resolved = resolveCommand(cmd);
     if (!resolved) { MYRAA.ui && MYRAA.ui.toast('Could not open that.', 'error'); return; }
     navigate(t, resolved.url, { title: resolved.title, special: resolved.special });
@@ -345,6 +351,125 @@ MYRAA.browser = (function () {
     } catch (e) { /* noop */ }
   }
 
+  /* ---------- in-app search (DuckDuckGo HTML can't be framed) ---------- */
+  function showSearch(query) {
+    const q = (query || '').trim();
+    if (!q) return;
+    const overlay = document.getElementById('browserSearch');
+    if (!overlay) return;
+    const qEl = document.getElementById('searchQuery');
+    const status = document.getElementById('searchStatus');
+    const instant = document.getElementById('searchInstant');
+    const results = document.getElementById('searchResults');
+    const ext = document.getElementById('searchExternal');
+    if (qEl) qEl.textContent = q;
+    if (ext) ext.href = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q);
+    if (instant) instant.innerHTML = '';
+    if (results) results.innerHTML = '';
+    if (status) status.textContent = 'Searching…';
+    overlay.style.display = 'flex';
+    const strip = document.getElementById('browserBlockedStrip');
+    if (strip) strip.style.display = 'none';
+    setLoading(false);
+    runSearch(q);
+  }
+
+  function closeSearch() {
+    const overlay = document.getElementById('browserSearch');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  async function runSearch(q) {
+    const status = document.getElementById('searchStatus');
+    const enc = encodeURIComponent(q);
+    // DuckDuckGo instant answers (no key, CORS open)
+    fetch('https://api.duckduckgo.com/?q=' + enc + '&format=json&no_html=1&skip_disambig=1')
+      .then((r) => r.json())
+      .then((data) => renderInstant(data))
+      .catch(() => {});
+    // Wikipedia article search (no key, CORS via origin=*)
+    await fetch('https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=' + enc +
+      '&format=json&origin=*&srlimit=10')
+      .then((r) => r.json())
+      .then((data) => renderWiki(data))
+      .catch(() => {});
+    const instant = document.getElementById('searchInstant');
+    const results = document.getElementById('searchResults');
+    const has = (instant && instant.children.length) || (results && results.children.length);
+    if (status && !has) {
+      status.textContent = 'No results here — try a different search, or open DuckDuckGo externally below.';
+    } else if (status) {
+      status.textContent = '';
+    }
+  }
+
+  function renderInstant(data) {
+    if (!data) return;
+    const box = document.getElementById('searchInstant');
+    if (!box) return;
+    if (data.AbstractText && data.AbstractURL) {
+      box.appendChild(buildCard({
+        source: 'DuckDuckGo', title: data.Heading || data.AbstractText.slice(0, 70),
+        snippet: data.AbstractText, url: data.AbstractURL, icon: '🦆',
+      }));
+    }
+    const topics = Array.isArray(data.RelatedTopics) ? data.RelatedTopics : [];
+    topics.slice(0, 6).forEach((t) => {
+      if (t.Topics) { t.Topics.slice(0, 3).forEach((x) => push(x)); } else { push(t); }
+    });
+    function push(x) {
+      if (x.FirstURL && x.Text) {
+        box.appendChild(buildCard({
+          source: 'DuckDuckGo', title: x.Text.slice(0, 90), snippet: x.Text, url: x.FirstURL, icon: '🦆',
+        }));
+      }
+    }
+  }
+
+  function renderWiki(data) {
+    const list = (data.query && data.query.search) || [];
+    const results = document.getElementById('searchResults');
+    if (!results) return;
+    list.forEach((s) => {
+      const title = s.title;
+      const url = 'https://en.wikipedia.org/wiki/' + encodeURIComponent(title.replace(/ /g, '_'));
+      const snippet = (s.snippet || '').replace(/<[^>]+>/g, '');
+      results.appendChild(buildCard({ source: 'Wikipedia', title, snippet, url, icon: '📚' }));
+    });
+  }
+
+  function buildCard({ source, title, snippet, url, icon }) {
+    const card = document.createElement('div');
+    card.className = 'search-card';
+    const top = document.createElement('div');
+    top.className = 'search-card-top';
+    const src = document.createElement('span');
+    src.className = 'search-src';
+    src.textContent = icon + ' ' + source;
+    const ext = document.createElement('button');
+    ext.className = 'search-ext';
+    ext.textContent = '↗';
+    ext.title = 'Open in new browser tab';
+    ext.addEventListener('click', (e) => { e.stopPropagation(); window.open(url, '_blank'); });
+    top.appendChild(src);
+    top.appendChild(ext);
+    const t = document.createElement('div');
+    t.className = 'search-title';
+    t.textContent = title;
+    const sn = document.createElement('div');
+    sn.className = 'search-snippet';
+    sn.textContent = snippet;
+    const host = document.createElement('div');
+    host.className = 'search-host';
+    try { host.textContent = new URL(url).hostname; } catch (e) { host.textContent = url; }
+    card.appendChild(top); card.appendChild(t); card.appendChild(sn); card.appendChild(host);
+    card.addEventListener('click', () => {
+      const tab = currentTab();
+      if (tab) navigate(tab, url);
+    });
+    return card;
+  }
+
   function showHistory() {
     const list = document.getElementById('browserHistoryList');
     const overlay = document.getElementById('browserHistory');
@@ -385,6 +510,12 @@ MYRAA.browser = (function () {
   /* ---------- open from chat ---------- */
   function openFromText(text) {
     const cmd = parseCommand(text);
+    if (cmd.type === 'search') {
+      openPanel();
+      createTab();
+      showSearch(cmd.value);
+      return true;
+    }
     const resolved = resolveCommand(cmd);
     if (!resolved) return false;
     openPanel();
@@ -410,6 +541,8 @@ MYRAA.browser = (function () {
         if (e.key === 'Enter') { openAddress(input.value); }
       });
     }
+    const closeBtn = document.getElementById('searchClose');
+    if (closeBtn) closeBtn.addEventListener('click', closeSearch);
     // start page talks to Myraa
     window.addEventListener('message', (e) => {
       if (e.data && e.data.type === 'myraa-navigate' && typeof e.data.value === 'string') {
