@@ -44,10 +44,7 @@ vercel --prod        # logs in once, uploads the folder directly (no git needed)
   Vercel — the browser requires a secure context, which Vercel provides.
 - `vercel.json` already sets clean URLs (`/` instead of `/index.html`).
 
-> 🔒 Note: the API key lives in the browser (localStorage), so anyone with the
-> deployed URL could see it. Fine for personal use. For a public deployment,
-> move the key into a Vercel serverless function (Environment Variable) that
-> proxies to Gemini — ask me and I'll wire that up.
+
 
 ## Run it
 
@@ -108,10 +105,6 @@ Click **Share Screen**, pick a screen/window/tab, and Hiyuki can see it. Enable
 ask "What website am I on?", "Explain this code", "How is this thumbnail?", or
 "Analyze my YouTube analytics". Frames are compressed (JPEG, max 1280px) before sending.
 
-### Cute voice
-TTS is tuned soft, gentle and high-pitched (pitch +25%, speed 0.92x). Pick your favorite
-system voice in Settings and test it. If the browser has no good female voice, install any
-TTS voice in your OS (e.g. Windows "Microsoft Zira/Aria") and it will be picked up.
 
 ### Browser
 A real tabbed browser panel (tabs, back/forward/reload/home, history, new tab). It opens on
